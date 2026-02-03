@@ -88,31 +88,22 @@ describe('geo_api_v1 routes', () => {
       };
     });
 
-    it('should register three GET routes', () => {
+    it('should register API routes including areas, kunnat and search', () => {
       setupRoutes(mockApp);
 
-      expect(mockApp.get).toHaveBeenCalledTimes(3);
+      const registeredPaths = mockApp.get.mock.calls.map((c: any) => c[0]);
+      expect(registeredPaths).toContain('/geo/api/v1');
+      expect(registeredPaths).toContain('/geo/api/v1/areas');
+      expect(registeredPaths).toContain('/geo/api/v1/kunnat');
+      expect(registeredPaths).toContain('/geo/api/v1/search');
+      // catch-all route may be registered with different placeholder syntax
+      expect(registeredPaths.some((p: any) => p.includes('*') || p.includes('{*'))).toBe(true);
     });
 
-    it('should register root API route at /geo/api/v1', () => {
+    it('should register the root route handler', () => {
       setupRoutes(mockApp);
-
-      const firstCall = mockApp.get.mock.calls[0];
-      expect(firstCall[0]).toBe('/geo/api/v1');
-    });
-
-    it('should register search route at /geo/api/v1/search', () => {
-      setupRoutes(mockApp);
-
-      const secondCall = mockApp.get.mock.calls[1];
-      expect(secondCall[0]).toBe('/geo/api/v1/search');
-    });
-
-    it('should register catch-all route at /geo/api/v1/*', () => {
-      setupRoutes(mockApp);
-
-      const thirdCall = mockApp.get.mock.calls[2];
-      expect(thirdCall[0]).toBe('/geo/api/v1/*');
+      const registeredPaths = mockApp.get.mock.calls.map((c: any) => c[0]);
+      expect(registeredPaths).toContain('/geo/api/v1');
     });
   });
 
@@ -165,6 +156,41 @@ describe('geo_api_v1 routes', () => {
       setupRoutes(mockApp);
     });
 
+    it('kunnat route should return mapped data using local asset', async () => {
+      // Spy on fs.readFile to return a small sample
+      const sample = JSON.stringify([
+        { code: '001', classificationItemNames: [{ name: 'TestKunta' }], localId: 'loc1' },
+      ]);
+
+      const fs = await import('fs');
+      const spy = vi.spyOn(fs.promises, 'readFile').mockResolvedValue(sample as any);
+
+      // Prepare mockApp to capture kunnat handler
+      let kunnatHandler: Function | undefined;
+      const mockApp2 = { get: vi.fn((path: string, handler: Function) => { if (path === '/geo/api/v1/kunnat') kunnatHandler = handler; }) };
+      setupRoutes(mockApp2);
+
+      // Call handler
+      const mockRes2: any = {
+        setHeader: vi.fn().mockReturnThis(),
+        status: vi.fn().mockReturnThis(),
+        send: vi.fn().mockReturnThis(),
+      };
+
+      const mockReq2: any = { path: '/geo/api/v1/kunnat', query: {} };
+
+      await kunnatHandler!(mockReq2, mockRes2);
+
+      expect(mockRes2.setHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
+      expect(mockRes2.status).toHaveBeenCalledWith(200);
+      expect(mockRes2.send).toHaveBeenCalled();
+
+      const sentData = (mockRes2.send as any).mock.calls[0][0];
+      expect(sentData.data).toBeDefined();
+      // cleanup
+      spy.mockRestore();
+    });
+
     it('should return empty arrays when no query parameters provided', () => {
       const testDate = new Date('2026-01-11T10:00:00Z');
       vi.useFakeTimers();
@@ -212,7 +238,7 @@ describe('geo_api_v1 routes', () => {
     beforeEach(() => {
       mockApp = {
         get: vi.fn((path, handler) => {
-          if (path === '/geo/api/v1/*') {
+          if (String(path).includes('*') || String(path).includes('{*')) {
             catchAllHandler = handler;
           }
         }),

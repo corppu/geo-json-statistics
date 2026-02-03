@@ -1,3 +1,5 @@
+import * as GeoJSON from 'geojson';
+
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -118,7 +120,7 @@ export interface SimpleStylesProperties {
  * @property {number | null | undefined} [populationSize] - The population count for the area, if available.
  * @property {Record<string, string | string[] | number | number[]> | null | undefined} [valueMap] - Additional custom data values mapped by string keys, supporting various data types.
  */
-export interface GeoJSONProperties extends SimpleStylesProperties {
+export interface GeoJSONProperties extends SimpleStylesProperties, ValidBetween {
   areaCode: AreaCode;
   areaName: Record<LanguageCode, string>;
   areaSize?: number | null | undefined;
@@ -133,5 +135,4 @@ export interface GeoJSONFeature extends GeoJSON.Feature {
 
 export interface GeoJSONFeatureCollection extends GeoJSON.FeatureCollection {
   features: GeoJSONFeature[];
-  properties: GeoJSONProperties;
 }

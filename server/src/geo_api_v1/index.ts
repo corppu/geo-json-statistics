@@ -1,5 +1,8 @@
 import { Request, Response, Express } from "express";
 import { fetchGeoStatFIGeoJSON } from "../integrations/geo_stat_fi";
+import { promises as fs } from 'fs';
+import path from 'path';
+import { mapGeoJSONFeatureCollection } from '../../../common/tools/mapCoordinates';
 
 const NEWLINE = "\n   ";
 
@@ -77,6 +80,21 @@ export default function (app: Express) {
     try {
       const data = await fetchGeoStatFIGeoJSON();
       sendJSON(req.path, res, data, date);
+    } catch (error: unknown) {
+      sendError(req.path, res, error, 500, date);
+    }
+  });
+
+  // Local endpoint that reads the bundled kunnat JSON and maps it using common mappers
+  app.get(`${apiRoutePath}/kunnat`, async (req: Request, res: Response) => {
+    const date = new Date();
+    try {
+      const assetPath = path.resolve(__dirname, '../../../client/src/assets/kunta_1000k_2025.json');
+      const file = await fs.readFile(assetPath, 'utf8');
+      const raw = JSON.parse(file);
+      const mapped = mapGeoJSONFeatureCollection(raw);
+
+      sendJSON(req.path, res, mapped, date);
     } catch (error: unknown) {
       sendError(req.path, res, error, 500, date);
     }

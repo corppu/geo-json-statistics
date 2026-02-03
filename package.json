@@ -14,6 +14,7 @@
   "author": "Toni Korpela",
   "type": "module",
   "scripts": {
+    "start": "cd client && yarn build && cd ../server && yarn start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
@@ -30,5 +31,11 @@
     "common",
     "client",
     "server"
-  ]
+  ],
+  "dependencies": {
+    "@turf/helpers": "^7.3.3",
+    "@turf/projection": "^7.3.3",
+    "@types/google.maps": "^3.58.1",
+    "proj4": "^2.20.2"
+  }
 }
