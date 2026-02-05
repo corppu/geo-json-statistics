@@ -114,6 +114,26 @@ export default function (app: Express) {
     );
   });
 
+  // Secure endpoint to get Google Maps API key (only returns key, no sensitive data exposed in client)
+  app.get(`${apiRoutePath}/config/google-maps-key`, (req: Request, res: Response) => {
+    const date = new Date();
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+    if (!apiKey) {
+      return sendError(req.path, res, "Google Maps API key not configured", 500, date);
+    }
+
+    // Return only the API key in a minimal response
+    sendJSON(
+      req.path,
+      res,
+      {
+        apiKey,
+      },
+      date,
+    );
+  });
+
   app.get(`${apiRoutePath}/{*any}`, (req: Request, res: Response) => {
     sendError(req.path, res, "Not Found", 404);
   });

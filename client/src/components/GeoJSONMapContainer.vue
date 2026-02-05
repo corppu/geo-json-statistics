@@ -10,7 +10,6 @@
       :height="height"
       :zoom="zoom"
       :center="center"
-      :apiKey="googleApiKey"
     />
 
     <div v-else class="no-provider">
@@ -20,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import LeafletMap from './LeafletMap.vue'
 import GoogleMap from './GoogleMap.vue'
@@ -29,8 +28,16 @@ import type { GeoJSONFeatureCollection } from '../../../common/types'
 const route = useRoute()
 
 // Get provider from either route param or query param (allow both styles)
-const providerParam = (route?.params?.provider as string) || (route?.query?.provider as string) || 'leaflet'
-const provider = providerParam.toLowerCase()
+const providerParam = computed(() => {
+  return ((route?.params?.provider as string) || (route?.query?.provider as string) || 'leaflet')
+})
+
+const provider = ref(providerParam.value.toLowerCase())
+
+// Update provider when route param or query changes
+watch(providerParam, (newVal) => {
+  provider.value = (newVal || 'leaflet').toLowerCase()
+})
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -40,11 +47,10 @@ const geojson = ref<GeoJSONFeatureCollection | null>(null)
 const zoom = 13
 const center: [number, number] = [60.1699, 24.9384]
 const height = '500px'
-const googleApiKey = '' // Put your key in env or pass via parent when needed
 
 const mapComponent = computed(() => {
-  if (provider === 'leaflet') return LeafletMap
-  if (provider === 'google') return GoogleMap
+  if (provider.value === 'leaflet') return LeafletMap
+  if (provider.value === 'google') return GoogleMap
   return LeafletMap
 })
 
